@@ -1,1 +1,303 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Scorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .drop-zone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        @keyframes fillProgress {
+            from { stroke-dasharray: 0 100; }
+        }
+        .score-circle {
+            animation: fillProgress 1s ease-out forwards;
+        }
+        .category-score {
+            transition: width 1s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">AI Resume Scorer</h1>
+            <p class="text-gray-600">Get an AI-powered analysis of your resume</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div id="dropZone" class="drop-zone bg-white rounded-lg p-8 text-center mb-8">
+            <input type="file" id="fileInput" class="hidden" accept=".pdf">
+            <div class="mb-4">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+            </div>
+            <p class="text-gray-600 mb-2">Drag and drop your resume PDF here or</p>
+            <button onclick="document.getElementById('fileInput').click()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+                Browse Files
+            </button>
+            <p class="text-sm text-gray-500 mt-2">Maximum file size: 5MB</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden">
+            <div class="flex items-center justify-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <span class="ml-2 text-gray-600">Analyzing resume with AI...</span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden">
+            <!-- Overall Score -->
+            <div class="bg-white rounded-lg p-8 mb-6">
+                <div class="flex flex-col items-center mb-8">
+                    <div class="relative w-32 h-32">
+                        <svg class="transform -rotate-90 w-32 h-32">
+                            <circle cx="60" cy="60" r="54" stroke="#e2e8f0" stroke-width="12" fill="none"/>
+                            <circle id="scoreCircle" cx="60" cy="60" r="54" stroke="#3b82f6" stroke-width="12" fill="none"
+                                style="stroke-dasharray: 0 100; stroke-dashoffset: 25;"/>
+                        </svg>
+                        <span id="scoreValue" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl font-bold"></span>
+                    </div>
+                    <p class="text-gray-600 mt-2">Overall Resume Score</p>
+                </div>
+
+                <!-- Score Breakdown -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Score Breakdown</h3>
+                    
+                    <!-- Relevance Score -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-gray-700">Job Relevance</span>
+                            <span id="relevanceScore" class="text-gray-600">0/25</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="relevanceBar" class="category-score bg-blue-500 rounded-full h-2" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Experience Score -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-gray-700">Experience</span>
+                            <span id="experienceScore" class="text-gray-600">0/25</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="experienceBar" class="category-score bg-blue-500 rounded-full h-2" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Skills Score -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-gray-700">Technical Skills</span>
+                            <span id="skillsScore" class="text-gray-600">0/25</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="skillsBar" class="category-score bg-blue-500 rounded-full h-2" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Formatting Score -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-gray-700">Formatting</span>
+                            <span id="formattingScore" class="text-gray-600">0/25</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="formattingBar" class="category-score bg-blue-500 rounded-full h-2" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="bg-white rounded-lg p-8">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Strengths -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Key Strengths</h3>
+                        <ul id="strengths" class="space-y-2"></ul>
+                    </div>
+
+                    <!-- Areas for Improvement -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Areas for Improvement</h3>
+                        <ul id="weaknesses" class="space-y-2"></ul>
+                    </div>
+                </div>
+
+                <!-- Try Again Button -->
+                <div class="text-center mt-8">
+                    <button onclick="resetForm()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition">
+                        Analyze Another Resume
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const loadingState = document.getElementById('loadingState');
+        const results = document.getElementById('results');
+        const scoreValue = document.getElementById('scoreValue');
+        const scoreCircle = document.getElementById('scoreCircle');
+
+        // Drag and drop handlers
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('dragover');
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', handleFileSelect, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            handleFile(file);
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            handleFile(file);
+        }
+
+        function handleFile(file) {
+            if (!file) return;
+            
+            if (file.type !== 'application/pdf') {
+                alert('Please upload a PDF file');
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                return;
+            }
+
+            uploadFile(file);
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('resume', file);
+
+            dropZone.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            results.classList.add('hidden');
+
+            try {
+                // Using relative URL since we're serving from the same server
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                alert('Error analyzing resume: ' + error.message);
+                resetForm();
+            }
+        }
+
+        function displayResults(data) {
+            loadingState.classList.add('hidden');
+            results.classList.remove('hidden');
+
+            // Update overall score
+            scoreValue.textContent = data.score;
+            const circumference = 2 * Math.PI * 54;
+            const offset = circumference - (data.score / 100) * circumference;
+            scoreCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+            scoreCircle.style.strokeDashoffset = offset;
+            scoreCircle.classList.add('score-circle');
+
+            // Update score breakdown
+            const { scoringBreakdown } = data.analysis;
+            
+            // Update category scores
+            document.getElementById('relevanceScore').textContent = `${scoringBreakdown.relevance}/25`;
+            document.getElementById('experienceScore').textContent = `${scoringBreakdown.experience}/25`;
+            document.getElementById('skillsScore').textContent = `${scoringBreakdown.skills}/25`;
+            document.getElementById('formattingScore').textContent = `${scoringBreakdown.formatting}/25`;
+
+            // Update progress bars
+            document.getElementById('relevanceBar').style.width = `${(scoringBreakdown.relevance/25)*100}%`;
+            document.getElementById('experienceBar').style.width = `${(scoringBreakdown.experience/25)*100}%`;
+            document.getElementById('skillsBar').style.width = `${(scoringBreakdown.skills/25)*100}%`;
+            document.getElementById('formattingBar').style.width = `${(scoringBreakdown.formatting/25)*100}%`;
+
+            // Update analysis lists
+            const strengthsList = document.getElementById('strengths');
+            const weaknessesList = document.getElementById('weaknesses');
+            
+            strengthsList.innerHTML = data.analysis.strengths
+                .map(strength => `<li class="flex items-start">
+                    <svg class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    ${strength}
+                </li>`)
+                .join('');
+
+            weaknessesList.innerHTML = data.analysis.weaknesses
+                .map(weakness => `<li class="flex items-start">
+                    <svg class="h-5 w-5 text-orange-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    ${weakness}
+                </li>`)
+                .join('');
+        }
+
+        function resetForm() {
+            dropZone.classList.remove('hidden');
+            loadingState.classList.add('hidden');
+            results.classList.add('hidden');
+            fileInput.value = '';
+            scoreCircle.classList.remove('score-circle');
+        }
+    </script>
+</body>
+</html>
