@@ -10,7 +10,7 @@ A Node.js-based application for generating customizable reports via a web interf
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/username/repository.git
+   git clone https://github.com/spymanth10/resume_scorer.git
 
 2. Navigate to the project director
     ```bash
