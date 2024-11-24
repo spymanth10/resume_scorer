@@ -5,6 +5,7 @@ const pdf = require('pdf-parse');
 const cors = require('cors');
 const fs = require('fs');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const PDFDocument = require('pdfkit'); // Import PDFKit
 
 const app = express();
 const port = 3000;
@@ -60,7 +61,7 @@ async function analyzeResumeWithGemini(resumeText) {
                 "score": (0-100 score based on match with job description),
                 "analysis": {
                     "strengths": [list of key strengths],
-                    "weaknesses": [list of areas for improvement],
+                    " weaknesses": [list of areas for improvement],
                     "scoringBreakdown": {
                         "relevance": (0-25 score for job relevance),
                         "experience": (0-25 score for experience quality),
@@ -139,6 +140,45 @@ async function analyzeResumeWithGemini(resumeText) {
     }
 }
 
+// New function to generate PDF report
+function generatePDFReport(analysis) {
+    const doc = new PDFDocument();
+    const buffers = [];
+
+    doc.on('data', buffers.push.bind(buffers));
+    doc.on('end', () => {
+        const pdfData = Buffer.concat(buffers);
+        fs.writeFileSync('report.pdf', pdfData); // Save PDF to file
+    });
+
+    doc.fontSize(20).text('Resume Analysis Report', { align: 'center' });
+    doc.moveDown();
+    
+    doc.fontSize(14).text(`Overall Score: ${analysis.score}`);
+    doc.moveDown();
+
+    const { scoringBreakdown } = analysis.analysis;
+
+    doc.text(`Job Relevance: ${scoringBreakdown.relevance}/25`);
+    doc.text(`Experience: ${scoringBreakdown.experience}/25`);
+    doc.text(`Technical Skills: ${scoringBreakdown.skills}/25`);
+    doc.text(`Formatting: ${scoringBreakdown.formatting}/25`);
+    doc.moveDown();
+
+    doc.text('Key Strengths:');
+    analysis.analysis.strengths.forEach(strength => {
+        doc.text(`- ${strength}`);
+    });
+    doc.moveDown();
+
+    doc.text('Areas for Improvement:');
+    analysis.analysis.weaknesses.forEach(weakness => {
+        doc.text(`- ${weakness}`);
+    });
+
+    doc.end();
+}
+
 // Routes
 app.post('/upload', upload.single('resume'), async (req, res) => {
     try {
@@ -153,6 +193,9 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
         // Analyze with Gemini
         const analysis = await analyzeResumeWithGemini(text);
         
+        // Generate PDF report
+        generatePDFReport(analysis);
+        
         // Clean up uploaded file
         fs.unlinkSync(req.file.path);
         
@@ -162,10 +205,27 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
         });
     } catch (error) {
         console.error('Error processing resume:', error);
-        res.status(400).json({
+        res.status(400).json ({
             success: false,
             error: error.message
         });
+    }
+});
+
+// New route to download the report
+app.get('/download-report', (req, res) => {
+    const file = path.join(__dirname, 'report.pdf');
+    
+    // Check if the file exists
+    if (fs.existsSync(file)) {
+        res.download(file, 'resume_analysis_report.pdf', (err) => {
+            if (err) {
+                console.error('Error downloading the report:', err);
+                res.status(500).send('Could not download the report');
+            }
+        });
+    } else {
+        res.status(404).send('Report not found');
     }
 });
 
@@ -178,4 +238,3 @@ app.listen(port, () => {
         fs.mkdirSync('uploads');
     }
 });
-      
