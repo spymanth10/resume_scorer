@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -24,6 +23,33 @@
         .category-score {
             transition: width 1s ease-out;
         }
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background-color: #1f2937; /* Dark background */
+            color: #ffffff; /* Light text color */
+        }
+        .bg-white.dark-mode {
+            background-color: #374151; /* Dark card background */
+        }
+        .text-gray-600.dark-mode {
+            color: #d1d5db; /* Light gray text */
+        }
+        .text-gray-800.dark-mode {
+            color: #e5e7eb; /* Light gray for headers */
+        }
+        .bg-blue-500.dark-mode {
+            background-color: #3b82f6; /* Adjust button color for dark mode */
+        }
+        .bg-gray-200.dark-mode {
+            background-color: #4b5563; /* Darker gray for progress bars */
+        }
+        .bg-green-500.dark-mode {
+            background-color: #10b981; /* Green button for dark mode */
+        }
+        /* Toggle styles */
+        .toggle-container {
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -32,6 +58,18 @@
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800 mb-2">AI Resume Scorer</h1>
             <p class="text-gray-600">Get an AI-powered analysis of your resume</p>
+        </div>
+
+        <!-- Toggle Button for Light/Dark Mode -->
+        <div class="toggle-container text-right">
+            <label for="toggle" class="inline-flex items-center cursor-pointer">
+                <span class="mr-2 text-gray-600">Toggle Dark/Light Mode</span>
+                <input type="checkbox" id="toggle" class="hidden">
+                <div class="relative">
+                    <div class="block bg-gray-300 w-14 h-8 rounded-full"></div>
+                    <div class="dot absolute left-0 top-0 bg-white w-6 h-6 rounded-full transition"></div>
+                </div>
+            </label>
         </div>
 
         <!-- Upload Section -->
@@ -46,6 +84,7 @@
             <button onclick="document.getElementById('fileInput').click()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
                 Browse Files
             </button>
+            <p class="text-sm text-gray-500 mt-2">Maximum file size: 5MB</ ```html
             <p class="text-sm text-gray-500 mt-2">Maximum file size: 5MB</p>
         </div>
 
@@ -134,13 +173,21 @@
 
                     <!-- Areas for Improvement -->
                     <div>
+                        <h3 class="text-lg font-semibold text-gray-800 ```html
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">Areas for Improvement</h3>
                         <ul id="weaknesses" class="space-y-2"></ul>
                     </div>
                 </div>
 
-                <!-- Try Again Button -->
+                <!-- Download Report Button -->
                 <div class="text-center mt-8">
+                    <button onclick="downloadReport()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
+                        Download Report
+                    </button>
+                </div>
+
+                <!-- Try Again Button -->
+                <div class="text-center mt-4">
                     <button onclick="resetForm()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition">
                         Analyze Another Resume
                     </button>
@@ -156,6 +203,7 @@
         const results = document.getElementById('results');
         const scoreValue = document.getElementById('scoreValue');
         const scoreCircle = document.getElementById('scoreCircle');
+        const toggleInput = document.getElementById('toggle');
 
         // Drag and drop handlers
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -222,7 +270,6 @@
             results.classList.add('hidden');
 
             try {
-                // Using relative URL since we're serving from the same server
                 const response = await fetch('/upload', {
                     method: 'POST',
                     body: formData
@@ -247,6 +294,7 @@
 
             // Update overall score
             scoreValue.textContent = data.score;
+             
             const circumference = 2 * Math.PI * 54;
             const offset = circumference - (data.score / 100) * circumference;
             scoreCircle.style.strokeDasharray = `${circumference} ${circumference}`;
@@ -263,10 +311,10 @@
             document.getElementById('formattingScore').textContent = `${scoringBreakdown.formatting}/25`;
 
             // Update progress bars
-            document.getElementById('relevanceBar').style.width = `${(scoringBreakdown.relevance/25)*100}%`;
-            document.getElementById('experienceBar').style.width = `${(scoringBreakdown.experience/25)*100}%`;
-            document.getElementById('skillsBar').style.width = `${(scoringBreakdown.skills/25)*100}%`;
-            document.getElementById('formattingBar').style.width = `${(scoringBreakdown.formatting/25)*100}%`;
+            document.getElementById('relevanceBar').style.width = `${( scoringBreakdown.relevance / 25) * 100}%`;
+            document.getElementById('experienceBar').style.width = `${(scoringBreakdown.experience / 25) * 100}%`;
+            document.getElementById('skillsBar').style.width = `${(scoringBreakdown.skills / 25) * 100}%`;
+            document.getElementById('formattingBar').style.width = `${(scoringBreakdown.formatting / 25) * 100}%`;
 
             // Update analysis lists
             const strengthsList = document.getElementById('strengths');
@@ -291,12 +339,36 @@
                 .join('');
         }
 
+        function downloadReport() {
+            window.location.href = '/download-report';
+        }
+
         function resetForm() {
             dropZone.classList.remove('hidden');
             loadingState.classList.add('hidden');
             results.classList.add('hidden');
             fileInput.value = '';
             scoreCircle.classList.remove('score-circle');
+        }
+
+        // Light/Dark Mode Toggle
+        toggleInput.addEventListener('change', () => {
+            document.body.classList.toggle('dark-mode');
+            const isChecked = toggleInput.checked;
+            localStorage.setItem('theme', isChecked ? 'dark' : 'light');
+            updateTogglePosition(isChecked);
+        });
+
+        function updateTogglePosition(isChecked) {
+            const dot = document.querySelector('.dot');
+            dot.style.transform = isChecked ? 'translateX(100%)' : 'translateX(0)';
+        }
+
+        // Check local storage for theme preference
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            toggleInput.checked = true; // Set toggle to checked
+            updateTogglePosition(true);
         }
     </script>
 </body>
