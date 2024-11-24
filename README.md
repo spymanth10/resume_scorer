@@ -23,12 +23,14 @@ A Node.js-based application for generating customizable reports via a web interf
 ## Usage
 
 1. Start the server
-   node app.js
+    ```bash
+    node app.js
 
 
   
 3. Open your browser at
-   http://localhost:3000
+    ```bash
+    http://localhost:3000
 
 
 
